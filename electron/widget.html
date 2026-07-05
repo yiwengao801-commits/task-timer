@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskTimer Widget</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+      -webkit-app-region: drag;
+    }
+
+    .widget {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #228be6 0%, #1c7ed6 100%);
+      color: white;
+      -webkit-app-region: drag;
+      min-height: 48px;
+    }
+
+    .widget-header.pinned {
+      background: linear-gradient(135deg, #40c057 0%, #37b24d 100%);
+    }
+
+    .widget-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .header-text {
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .timer-mini {
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.9;
+    }
+
+    .status-badge {
+      font-size: 10px;
+      background: rgba(255, 255, 255, 0.25);
+      padding: 2px 6px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .widget-controls {
+      display: flex;
+      gap: 8px;
+      -webkit-app-region: no-drag;
+      flex-shrink: 0;
+    }
+
+    .widget-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+
+    .widget-btn:hover { opacity: 0.8; }
+    .btn-minimize { background: #fab005; color: white; }
+    .btn-pin { background: #40c057; color: white; }
+    .btn-close { background: #fa5252; color: white; }
+
+    .widget-body {
+      padding: 12px;
+      -webkit-app-region: no-drag;
+    }
+
+    .task-name-input {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 12px;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      background: #f8f9fa;
+      color: #212529;
+      outline: none;
+      margin-bottom: 8px;
+    }
+
+    .task-name-input:focus {
+      border-color: #228be6;
+      box-shadow: 0 0 0 3px rgba(34, 139, 230, 0.1);
+    }
+
+    .task-name-input:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .timer-display {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .timer-time {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: -0.5px;
+      font-variant-numeric: tabular-nums;
+      color: #212529;
+    }
+
+    .timer-label {
+      font-size: 10px;
+      color: #868e96;
+    }
+
+    .timer-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    .timer-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .timer-btn:hover { opacity: 0.9; }
+    .timer-btn-primary { background: #228be6; color: white; }
+    .timer-btn-secondary { background: #e9ecef; color: #495057; }
+    .timer-btn-danger { background: #fa5252; color: white; }
+
+    /* 最小化状态 */
+    .widget.minimized .widget-body {
+      display: none;
+    }
+
+    .widget.minimized {
+      height: 48px;
+    }
+
+    body.minimized {
+      height: 48px;
+    }
+  </style>
+</head>
+<body id="body">
+  <div class="widget" id="widget">
+    <div class="widget-header" id="widget-header">
+      <div class="widget-title">
+        <span class="header-text" id="header-text">📋 TaskTimer</span>
+        <span class="timer-mini" id="timer-mini" style="display: none;"></span>
+        <span class="status-badge" id="status-badge" style="display: none;"></span>
+      </div>
+      <div class="widget-controls">
+        <button class="widget-btn btn-minimize" id="btn-minimize" title="最小化">—</button>
+        <button class="widget-btn btn-pin" id="btn-pin" title="置顶">📌</button>
+        <button class="widget-btn btn-close" id="btn-close" title="关闭">×</button>
+      </div>
+    </div>
+
+    <div class="widget-body" id="widget-body">
+      <input type="text" class="task-name-input" id="task-input" placeholder="输入任务名称...">
+
+      <div class="timer-display">
+        <div class="timer-time" id="timer-display">00:00:00</div>
+        <div class="timer-label" id="timer-label">准备开始</div>
+      </div>
+
+      <div class="timer-buttons" id="timer-buttons">
+        <button class="timer-btn timer-btn-primary" id="btn-start">▶ 开始</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 计时器状态
+    let timerState = {
+      status: 'idle',
+      startTime: null,
+      elapsed: 0,
+      pausedAt: 0,
+      interval: null,
+      taskName: ''
+    }
+
+    // DOM 元素
+    const widget = document.getElementById('widget')
+    const widgetHeader = document.getElementById('widget-header')
+    const headerText = document.getElementById('header-text')
+    const timerMini = document.getElementById('timer-mini')
+    const statusBadge = document.getElementById('status-badge')
+    const taskInput = document.getElementById('task-input')
+    const timerDisplay = document.getElementById('timer-display')
+    const timerLabel = document.getElementById('timer-label')
+    const timerButtons = document.getElementById('timer-buttons')
+
+    // 格式化时间
+    function formatSeconds(total) {
+      const h = Math.floor(total / 3600)
+      const m = Math.floor((total % 3600) / 60)
+      const s = total % 60
+      return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':')
+    }
+
+    // 截取任务名称（最多显示前4个字）
+    function truncateName(name) {
+      if (!name) return ''
+      return name.length > 4 ? name.substring(0, 4) + '...' : name
+    }
+
+    // 更新 UI
+    function updateUI() {
+      const timeStr = formatSeconds(timerState.elapsed)
+      timerDisplay.textContent = timeStr
+      timerMini.textContent = timeStr
+
+      if (timerState.status === 'idle') {
+        timerLabel.textContent = '准备开始'
+        timerButtons.innerHTML = '<button class="timer-btn timer-btn-primary" id="btn-start">▶ 开始</button>'
+        taskInput.disabled = false
+        headerText.textContent = '📋 TaskTimer'
+        timerMini.style.display = 'none'
+        statusBadge.style.display = 'none'
+        document.getElementById('btn-start')?.addEventListener('click', startTimer)
+      } else if (timerState.status === 'running') {
+        timerLabel.textContent = '已计时'
+        timerButtons.innerHTML = `
+          <button class="timer-btn timer-btn-secondary" id="btn-pause">⏸ 暂停</button>
+          <button class="timer-btn timer-btn-danger" id="btn-stop">⏹ 结束</button>
+        `
+        taskInput.disabled = true
+        headerText.textContent = '📋 ' + truncateName(timerState.taskName)
+        timerMini.style.display = 'inline'
+        statusBadge.style.display = 'inline'
+        statusBadge.textContent = '计时中'
+        document.getElementById('btn-pause')?.addEventListener('click', pauseTimer)
+        document.getElementById('btn-stop')?.addEventListener('click', stopTimer)
+      } else if (timerState.status === 'paused') {
+        timerLabel.textContent = '已暂停'
+        timerButtons.innerHTML = `
+          <button class="timer-btn timer-btn-primary" id="btn-resume">▶ 继续</button>
+          <button class="timer-btn timer-btn-danger" id="btn-stop">⏹ 结束</button>
+        `
+        taskInput.disabled = true
+        headerText.textContent = '📋 ' + truncateName(timerState.taskName)
+        timerMini.style.display = 'inline'
+        statusBadge.style.display = 'inline'
+        statusBadge.textContent = '暂停中'
+        document.getElementById('btn-resume')?.addEventListener('click', resumeTimer)
+        document.getElementById('btn-stop')?.addEventListener('click', stopTimer)
+      }
+    }
+
+    // 开始计时
+    function startTimer() {
+      if (!taskInput.value.trim()) {
+        alert('请输入任务名称')
+        return
+      }
+
+      timerState.status = 'running'
+      timerState.startTime = Date.now()
+      timerState.elapsed = 0
+      timerState.pausedAt = 0
+      timerState.taskName = taskInput.value.trim()
+
+      timerState.interval = setInterval(() => {
+        timerState.elapsed = Math.floor((Date.now() - timerState.startTime) / 1000) + timerState.pausedAt
+        const timeStr = formatSeconds(timerState.elapsed)
+        timerDisplay.textContent = timeStr
+        timerMini.textContent = timeStr
+      }, 1000)
+
+      updateUI()
+    }
+
+    // 暂停计时
+    function pauseTimer() {
+      timerState.status = 'paused'
+      timerState.pausedAt = timerState.elapsed
+      clearInterval(timerState.interval)
+      updateUI()
+    }
+
+    // 继续计时
+    function resumeTimer() {
+      timerState.status = 'running'
+      timerState.startTime = Date.now()
+
+      timerState.interval = setInterval(() => {
+        timerState.elapsed = Math.floor((Date.now() - timerState.startTime) / 1000) + timerState.pausedAt
+        const timeStr = formatSeconds(timerState.elapsed)
+        timerDisplay.textContent = timeStr
+        timerMini.textContent = timeStr
+      }, 1000)
+
+      updateUI()
+    }
+
+    // 结束计时
+    function stopTimer() {
+      clearInterval(timerState.interval)
+
+      // 创建任务对象
+      const task = {
+        id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        name: timerState.taskName,
+        startTime: new Date(timerState.startTime).toISOString(),
+        endTime: new Date().toISOString(),
+        duration: Math.round(timerState.elapsed / 60)
+      }
+
+      // 通过 IPC 发送给主窗口保存
+      window.electronAPI.saveTask(task)
+
+      // 重置状态
+      timerState = { status: 'idle', startTime: null, elapsed: 0, pausedAt: 0, interval: null, taskName: '' }
+      taskInput.value = ''
+      updateUI()
+    }
+
+    // 最小化
+    let isMinimized = false
+    document.getElementById('btn-minimize').addEventListener('click', () => {
+      isMinimized = !isMinimized
+      widget.classList.toggle('minimized', isMinimized)
+      document.getElementById('body').classList.toggle('minimized', isMinimized)
+      document.getElementById('btn-minimize').textContent = isMinimized ? '□' : '—'
+      // 通知主进程调整窗口大小
+      window.electronAPI.resize(isMinimized)
+    })
+
+    // 置顶
+    let isPinned = true
+    document.getElementById('btn-pin').addEventListener('click', () => {
+      window.electronAPI.togglePin()
+    })
+
+    // 监听置顶状态
+    window.electronAPI.onPinStatus((pinned) => {
+      isPinned = pinned
+      widgetHeader.classList.toggle('pinned', isPinned)
+    })
+
+    // 关闭
+    document.getElementById('btn-close').addEventListener('click', () => {
+      window.electronAPI.close()
+    })
+
+    // 初始化
+    updateUI()
+  </script>
+</body>
+</html>

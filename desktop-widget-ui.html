@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桌面悬浮组件 UI 设计</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .page-title {
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      margin-bottom: 40px;
+    }
+
+    .section-label {
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .widgets-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+
+    /* 悬浮计时器组件 */
+    .timer-widget {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #228be6 0%, #1c7ed6 100%);
+      color: white;
+      cursor: move;
+    }
+
+    .widget-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .widget-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .widget-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-minimize { background: #fab005; color: white; }
+    .btn-pin { background: #40c057; color: white; }
+    .btn-close { background: #fa5252; color: white; }
+
+    .widget-body {
+      padding: 20px;
+    }
+
+    .task-name-display {
+      font-size: 14px;
+      color: #212529;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .task-name-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background: #f8f9fa;
+      color: #212529;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    .task-name-input:focus {
+      border-color: #228be6;
+      box-shadow: 0 0 0 3px rgba(34, 139, 230, 0.1);
+    }
+
+    .timer-display {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .timer-time {
+      font-size: 42px;
+      font-weight: 200;
+      letter-spacing: -1px;
+      font-variant-numeric: tabular-nums;
+      color: #212529;
+    }
+
+    .timer-label {
+      font-size: 12px;
+      color: #868e96;
+    }
+
+    .timer-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .timer-btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .timer-btn:hover { opacity: 0.9; }
+    .timer-btn-primary { background: #228be6; color: white; }
+    .timer-btn-secondary { background: #e9ecef; color: #495057; }
+    .timer-btn-danger { background: #fa5252; color: white; }
+
+    /* 健康提醒弹窗 */
+    .health-reminder {
+      width: 300px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .reminder-header {
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    .reminder-icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .reminder-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #212529;
+      margin-bottom: 4px;
+    }
+
+    .reminder-subtitle {
+      font-size: 13px;
+      color: #868e96;
+    }
+
+    .reminder-body {
+      padding: 0 20px 20px;
+    }
+
+    .reminder-tip {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .reminder-tip-title {
+      font-size: 12px;
+      color: #868e96;
+      margin-bottom: 4px;
+    }
+
+    .reminder-tip-text {
+      font-size: 13px;
+      color: #495057;
+    }
+
+    .reminder-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .reminder-btn {
+      flex: 1;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reminder-btn-complete {
+      background: linear-gradient(135deg, #40c057 0%, #37b24d 100%);
+      color: white;
+    }
+
+    .reminder-btn-snooze {
+      background: #e9ecef;
+      color: #495057;
+    }
+
+    /* 不同类型的提醒样式 */
+    .reminder-water .reminder-header { background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%); }
+    .reminder-walk .reminder-header { background: linear-gradient(135deg, #ebfbee 0%, #d3f9d8 100%); }
+    .reminder-eye .reminder-header { background: linear-gradient(135deg, #fff3bf 0%, #ffec99 100%); }
+    .reminder-stretch .reminder-header { background: linear-gradient(135deg, #f3d9fa 0%, #e5dbf9 100%); }
+
+    /* 最小化状态 */
+    .timer-widget.minimized .widget-body {
+      display: none;
+    }
+
+    .timer-widget.minimized {
+      width: auto;
+    }
+
+    /* 已置顶状态 */
+    .widget-header.pinned {
+      background: linear-gradient(135deg, #40c057 0%, #37b24d 100%);
+    }
+
+    /* 演示区域 */
+    .demo-section {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+
+    .demo-title {
+      color: white;
+      font-size: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .demo-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    /* 状态指示器 */
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #40c057;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* 说明文字 */
+    .description {
+      max-width: 600px;
+      margin: 0 auto 40px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .description h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #212529;
+    }
+
+    .description ul {
+      padding-left: 20px;
+      color: #495057;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .description li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="page-title">🖥️ 桌面悬浮组件 UI 设计</h1>
+
+  <!-- 说明 -->
+  <div class="description">
+    <h3>📋 功能说明</h3>
+    <ul>
+      <li><strong>悬浮计时器</strong>：始终置顶显示，可拖动位置，显示当前任务和计时</li>
+      <li><strong>健康提醒</strong>：每 40-60 分钟随机弹出，点击「已完成」才消失</li>
+      <li><strong>置顶功能</strong>：点击 📌 按钮切换是否始终置顶</li>
+      <li><strong>最小化</strong>：点击 — 按钮最小化到标题栏</li>
+    </ul>
+  </div>
+
+  <!-- 悬浮计时器 -->
+  <div class="section-label">⏱️ 悬浮计时器组件</div>
+  <div class="widgets-container">
+    <!-- 状态1：输入任务 -->
+    <div class="timer-widget">
+      <div class="widget-header">
+        <div class="widget-title">
+          📋 TaskTimer
+        </div>
+        <div class="widget-controls">
+          <button class="widget-btn btn-minimize">—</button>
+          <button class="widget-btn btn-pin">📌</button>
+          <button class="widget-btn btn-close">×</button>
+        </div>
+      </div>
+      <div class="widget-body">
+        <input type="text" class="task-name-input" placeholder="输入任务名称..." value="写项目报告">
+        <div class="timer-display">
+          <div class="timer-time">00:00:00</div>
+          <div class="timer-label">准备开始</div>
+        </div>
+        <div class="timer-buttons">
+          <button class="timer-btn timer-btn-primary">▶ 开始</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态2：计时中 -->
+    <div class="timer-widget">
+      <div class="widget-header pinned">
+        <div class="widget-title">
+          📋 写项目报告
+          <span class="status-indicator">
+            <span class="status-dot"></span>
+            计时中
+          </span>
+        </div>
+        <div class="widget-controls">
+          <button class="widget-btn btn-minimize">—</button>
+          <button class="widget-btn btn-pin">📌</button>
+          <button class="widget-btn btn-close">×</button>
+        </div>
+      </div>
+      <div class="widget-body">
+        <div class="timer-display">
+          <div class="timer-time">00:45:32</div>
+          <div class="timer-label">已计时</div>
+        </div>
+        <div class="timer-buttons">
+          <button class="timer-btn timer-btn-secondary">⏸ 暂停</button>
+          <button class="timer-btn timer-btn-danger">⏹ 结束</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态3：最小化 -->
+    <div class="timer-widget minimized">
+      <div class="widget-header">
+        <div class="widget-title">
+          📋 写项目报告 · 00:45:32
+        </div>
+        <div class="widget-controls">
+          <button class="widget-btn btn-minimize">□</button>
+          <button class="widget-btn btn-pin">📌</button>
+          <button class="widget-btn btn-close">×</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 健康提醒 -->
+  <div class="section-label">💚 健康提醒弹窗（随机出现）</div>
+  <div class="widgets-container">
+    <!-- 喝水提醒 -->
+    <div class="health-reminder reminder-water">
+      <div class="reminder-header">
+        <div class="reminder-icon">💧</div>
+        <div class="reminder-title">该喝水了！</div>
+        <div class="reminder-subtitle">保持水分，精力充沛</div>
+      </div>
+      <div class="reminder-body">
+        <div class="reminder-tip">
+          <div class="reminder-tip-title">💡 小贴士</div>
+          <div class="reminder-tip-text">每天喝 8 杯水有助于保持身体健康</div>
+        </div>
+        <div class="reminder-buttons">
+          <button class="reminder-btn reminder-btn-snooze">稍后提醒</button>
+          <button class="reminder-btn reminder-btn-complete">✓ 已完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 走路提醒 -->
+    <div class="health-reminder reminder-walk">
+      <div class="reminder-header">
+        <div class="reminder-icon">🚶</div>
+        <div class="reminder-title">该走动了！</div>
+        <div class="reminder-subtitle">站起来活动一下</div>
+      </div>
+      <div class="reminder-body">
+        <div class="reminder-tip">
+          <div class="reminder-tip-title">💡 小贴士</div>
+          <div class="reminder-tip-text">久坐不动会影响血液循环，建议每小时起身活动</div>
+        </div>
+        <div class="reminder-buttons">
+          <button class="reminder-btn reminder-btn-snooze">稍后提醒</button>
+          <button class="reminder-btn reminder-btn-complete">✓ 已完成</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="widgets-container">
+    <!-- 护眼提醒 -->
+    <div class="health-reminder reminder-eye">
+      <div class="reminder-header">
+        <div class="reminder-icon">👀</div>
+        <div class="reminder-title">让眼睛休息一下！</div>
+        <div class="reminder-subtitle">看看远处，放松眼睛</div>
+      </div>
+      <div class="reminder-body">
+        <div class="reminder-tip">
+          <div class="reminder-tip-title">💡 小贴士</div>
+          <div class="reminder-tip-text">20-20-20 法则：每 20 分钟看 20 英尺外 20 秒</div>
+        </div>
+        <div class="reminder-buttons">
+          <button class="reminder-btn reminder-btn-snooze">稍后提醒</button>
+          <button class="reminder-btn reminder-btn-complete">✓ 已完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 伸展提醒 -->
+    <div class="health-reminder reminder-stretch">
+      <div class="reminder-header">
+        <div class="reminder-icon">🧘</div>
+        <div class="reminder-title">该伸展一下了！</div>
+        <div class="reminder-subtitle">放松肌肉，缓解疲劳</div>
+      </div>
+      <div class="reminder-body">
+        <div class="reminder-tip">
+          <div class="reminder-tip-title">💡 小贴士</div>
+          <div class="reminder-tip-text">简单的伸展运动可以缓解肩颈疼痛</div>
+        </div>
+        <div class="reminder-buttons">
+          <button class="reminder-btn reminder-btn-snooze">稍后提醒</button>
+          <button class="reminder-btn reminder-btn-complete">✓ 已完成</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 交互演示 -->
+  <div class="demo-section">
+    <div class="demo-title">🎯 按钮功能说明</div>
+    <div class="demo-row">
+      <div style="color: white; font-size: 14px; text-align: center; padding: 10px;">
+        <strong>— 最小化</strong><br>
+        <span style="opacity: 0.8;">收起到标题栏，只显示任务名和时间</span>
+      </div>
+      <div style="color: white; font-size: 14px; text-align: center; padding: 10px;">
+        <strong>📌 置顶</strong><br>
+        <span style="opacity: 0.8;">切换始终置顶模式（绿色=已置顶）</span>
+      </div>
+      <div style="color: white; font-size: 14px; text-align: center; padding: 10px;">
+        <strong>× 关闭</strong><br>
+        <span style="opacity: 0.8;">关闭悬浮窗（数据保留）</span>
+      </div>
+      <div style="color: white; font-size: 14px; text-align: center; padding: 10px;">
+        <strong>稍后提醒</strong><br>
+        <span style="opacity: 0.8;">10 分钟后再次提醒</span>
+      </div>
+      <div style="color: white; font-size: 14px; text-align: center; padding: 10px;">
+        <strong>✓ 已完成</strong><br>
+        <span style="opacity: 0.8;">关闭提醒，记录完成</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

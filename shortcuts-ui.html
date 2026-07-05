@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>快捷入口组件 UI 设计</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .page-title {
+      text-align: center;
+      color: white;
+      font-size: 24px;
+      margin-bottom: 40px;
+    }
+
+    .section-label {
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .widgets-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    /* 计时器组件 */
+    .timer-widget {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #228be6 0%, #1c7ed6 100%);
+      color: white;
+    }
+
+    .widget-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .widget-controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .widget-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-minimize { background: #fab005; color: white; }
+    .btn-pin { background: #40c057; color: white; }
+    .btn-close { background: #fa5252; color: white; }
+
+    .widget-body {
+      padding: 20px;
+    }
+
+    .timer-display {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .timer-time {
+      font-size: 42px;
+      font-weight: 200;
+      letter-spacing: -1px;
+      font-variant-numeric: tabular-nums;
+      color: #212529;
+    }
+
+    .timer-label {
+      font-size: 12px;
+      color: #868e96;
+    }
+
+    .timer-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .timer-btn {
+      flex: 1;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .timer-btn-primary { background: #228be6; color: white; }
+    .timer-btn-secondary { background: #e9ecef; color: #495057; }
+    .timer-btn-danger { background: #fa5252; color: white; }
+
+    /* 快捷入口组件 */
+    .shortcuts-widget {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    .shortcuts-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #845ef7 0%, #7950f2 100%);
+      color: white;
+    }
+
+    .shortcuts-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .shortcuts-body {
+      padding: 12px;
+    }
+
+    .shortcuts-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .shortcut-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 4px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .shortcut-item:hover {
+      background: #f8f9fa;
+    }
+
+    .shortcut-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 6px;
+      color: white;
+    }
+
+    .shortcut-icon.google { background: linear-gradient(135deg, #4285f4, #34a853, #fbbc05, #ea4335); }
+    .shortcut-icon.github { background: #24292e; }
+    .shortcut-icon.notion { background: #000; }
+    .shortcut-icon.chatgpt { background: linear-gradient(135deg, #10a37f 0%, #1a7f64 100%); }
+    .shortcut-icon.gmail { background: #ea4335; }
+    .shortcut-icon.youtube { background: #ff0000; }
+    .shortcut-icon.twitter { background: #1da1f2; }
+    .shortcut-icon.slack { background: #4a154b; }
+
+    .shortcut-name {
+      font-size: 11px;
+      color: #495057;
+      text-align: center;
+      max-width: 60px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .shortcut-edit-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      font-size: 8px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+    }
+
+    .shortcut-item:hover .shortcut-edit-btn {
+      display: flex;
+    }
+
+    /* 添加按钮 */
+    .shortcut-add {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 4px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px dashed #dee2e6;
+      background: transparent;
+      transition: all 0.2s;
+    }
+
+    .shortcut-add:hover {
+      border-color: #845ef7;
+      background: rgba(132, 94, 247, 0.05);
+    }
+
+    .shortcut-add-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 6px;
+      color: #adb5bd;
+    }
+
+    .shortcut-add-text {
+      font-size: 11px;
+      color: #adb5bd;
+    }
+
+    /* 编辑弹窗 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 320px;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #f8f9fa;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      color: #868e96;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: #495057;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      background: #f8f9fa;
+      color: #212529;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: #845ef7;
+    }
+
+    .icon-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .icon-option {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .icon-option:hover {
+      transform: scale(1.1);
+    }
+
+    .icon-option.selected {
+      border-color: #845ef7;
+      box-shadow: 0 0 0 2px rgba(132, 94, 247, 0.2);
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-secondary { background: #e9ecef; color: #495057; }
+    .btn-danger { background: #fa5252; color: white; }
+    .btn-primary { background: #845ef7; color: white; }
+
+    /* 组合展示 */
+    .combined-widget {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* 说明 */
+    .description {
+      max-width: 600px;
+      margin: 0 auto 40px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .description h3 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      color: #212529;
+    }
+
+    .description ul {
+      padding-left: 20px;
+      color: #495057;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .description li {
+      margin-bottom: 4px;
+    }
+
+    /* 颜色选择器 */
+    .color-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .color-option {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .color-option:hover {
+      transform: scale(1.1);
+    }
+
+    .color-option.selected {
+      border-color: #212529;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1 class="page-title">🔗 快捷入口组件 UI 设计</h1>
+
+  <!-- 说明 -->
+  <div class="description">
+    <h3>📋 功能说明</h3>
+    <ul>
+      <li><strong>快捷入口</strong>：最多显示 4 个网页快捷方式</li>
+      <li><strong>点击跳转</strong>：点击图标直接打开网页</li>
+      <li><strong>自定义名称</strong>：可以修改显示名称</li>
+      <li><strong>添加/删除</strong>：支持添加新入口和删除现有入口</li>
+      <li><strong>图标选择</strong>：预设多种图标和颜色可选</li>
+    </ul>
+  </div>
+
+  <!-- 组合展示 -->
+  <div class="section-label">📱 计时器 + 快捷入口 组合展示</div>
+  <div class="widgets-container">
+    <div class="combined-widget">
+      <!-- 计时器组件 -->
+      <div class="timer-widget">
+        <div class="widget-header">
+          <div class="widget-title">📋 写项目... 00:45:32 计时中</div>
+          <div class="widget-controls">
+            <button class="widget-btn btn-minimize">—</button>
+            <button class="widget-btn btn-pin">📌</button>
+            <button class="widget-btn btn-close">×</button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <div class="timer-display">
+            <div class="timer-time">00:45:32</div>
+            <div class="timer-label">已计时</div>
+          </div>
+          <div class="timer-buttons">
+            <button class="timer-btn timer-btn-secondary">⏸ 暂停</button>
+            <button class="timer-btn timer-btn-danger">⏹ 结束</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 快捷入口组件 -->
+      <div class="shortcuts-widget">
+        <div class="shortcuts-header">
+          <div class="shortcuts-title">🔗 快捷入口</div>
+          <div class="widget-controls">
+            <button class="widget-btn btn-minimize" style="background: rgba(255,255,255,0.2);">⚙️</button>
+          </div>
+        </div>
+        <div class="shortcuts-body">
+          <div class="shortcuts-grid">
+            <div class="shortcut-item">
+              <div class="shortcut-icon google">G</div>
+              <div class="shortcut-name">Google</div>
+              <button class="shortcut-edit-btn">✏️</button>
+            </div>
+            <div class="shortcut-item">
+              <div class="shortcut-icon github">🐱</div>
+              <div class="shortcut-name">GitHub</div>
+              <button class="shortcut-edit-btn">✏️</button>
+            </div>
+            <div class="shortcut-item">
+              <div class="shortcut-icon notion">📝</div>
+              <div class="shortcut-name">Notion</div>
+              <button class="shortcut-edit-btn">✏️</button>
+            </div>
+            <div class="shortcut-item">
+              <div class="shortcut-icon chatgpt">🤖</div>
+              <div class="shortcut-name">ChatGPT</div>
+              <button class="shortcut-edit-btn">✏️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑状态展示 -->
+  <div class="section-label">✏️ 编辑状态（悬停显示编辑按钮）</div>
+  <div class="widgets-container">
+    <div class="shortcuts-widget">
+      <div class="shortcuts-header">
+        <div class="shortcuts-title">🔗 快捷入口</div>
+      </div>
+      <div class="shortcuts-body">
+        <div class="shortcuts-grid">
+          <div class="shortcut-item">
+            <div class="shortcut-icon gmail">✉️</div>
+            <div class="shortcut-name">Gmail</div>
+            <button class="shortcut-edit-btn" style="display: flex;">✏️</button>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-icon youtube">▶️</div>
+            <div class="shortcut-name">YouTube</div>
+            <button class="shortcut-edit-btn" style="display: flex;">✏️</button>
+          </div>
+          <div class="shortcut-item">
+            <div class="shortcut-icon twitter">🐦</div>
+            <div class="shortcut-name">Twitter</div>
+            <button class="shortcut-edit-btn" style="display: flex;">✏️</button>
+          </div>
+          <div class="shortcut-add">
+            <div class="shortcut-add-icon">➕</div>
+            <div class="shortcut-add-text">添加</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑弹窗 -->
+  <div class="section-label">🪟 编辑弹窗</div>
+  <div class="widgets-container">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">✏️ 编辑快捷入口</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">名称</label>
+          <input type="text" class="form-input" value="Google">
+        </div>
+        <div class="form-group">
+          <label class="form-label">网址</label>
+          <input type="text" class="form-input" value="https://google.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">图标</label>
+          <div class="icon-selector">
+            <div class="icon-option selected" style="background: linear-gradient(135deg, #4285f4, #34a853, #fbbc05, #ea4335);">G</div>
+            <div class="icon-option" style="background: #24292e;">🐱</div>
+            <div class="icon-option" style="background: #000;">📝</div>
+            <div class="icon-option" style="background: linear-gradient(135deg, #10a37f, #1a7f64);">🤖</div>
+            <div class="icon-option" style="background: #ea4335;">✉️</div>
+            <div class="icon-option" style="background: #ff0000;">▶️</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">颜色</label>
+          <div class="color-selector">
+            <div class="color-option selected" style="background: linear-gradient(135deg, #4285f4, #34a853, #fbbc05, #ea4335);"></div>
+            <div class="color-option" style="background: #228be6;"></div>
+            <div class="color-option" style="background: #40c057;"></div>
+            <div class="color-option" style="background: #fab005;"></div>
+            <div class="color-option" style="background: #fa5252;"></div>
+            <div class="color-option" style="background: #845ef7;"></div>
+            <div class="color-option" style="background: #e64980;"></div>
+            <div class="color-option" style="background: #15aabf;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger">🗑️ 删除</button>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary">取消</button>
+          <button class="btn btn-primary">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 预设图标列表 -->
+  <div class="section-label">🎨 预设图标和颜色</div>
+  <div class="widgets-container">
+    <div class="shortcuts-widget">
+      <div class="shortcuts-header">
+        <div class="shortcuts-title">🔗 可选图标</div>
+      </div>
+      <div class="shortcuts-body">
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+          <div class="shortcut-icon google" style="margin: 0;">G</div>
+          <div class="shortcut-icon github" style="margin: 0;">🐱</div>
+          <div class="shortcut-icon notion" style="margin: 0;">📝</div>
+          <div class="shortcut-icon chatgpt" style="margin: 0;">🤖</div>
+          <div class="shortcut-icon gmail" style="margin: 0;">✉️</div>
+          <div class="shortcut-icon youtube" style="margin: 0;">▶️</div>
+          <div class="shortcut-icon twitter" style="margin: 0;">🐦</div>
+          <div class="shortcut-icon slack" style="margin: 0;">💬</div>
+          <div class="shortcut-icon" style="background: #ff6b6b; margin: 0;">📌</div>
+          <div class="shortcut-icon" style="background: #4ecdc4; margin: 0;">📊</div>
+          <div class="shortcut-icon" style="background: #45b7d1; margin: 0;">📁</div>
+          <div class="shortcut-icon" style="background: #96ceb4; margin: 0;">🎨</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

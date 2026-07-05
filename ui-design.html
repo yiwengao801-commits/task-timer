@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskTimer UI Design - 完整版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #f1f3f5;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-tertiary: #adb5bd;
+      --border-color: #dee2e6;
+      --accent-color: #228be6;
+      --accent-light: #e7f5ff;
+      --success-color: #40c057;
+      --success-light: #ebfbee;
+      --danger-color: #fa5252;
+      --warning-color: #fab005;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+      font-weight: 400;
+    }
+
+    .mockup-card {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-icon {
+      width: 24px;
+      height: 24px;
+      background: var(--accent-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+    }
+
+    .theme-toggle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    /* Tab Navigation */
+    .tab-nav {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-color);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 2px;
+      background: var(--accent-color);
+      border-radius: 1px;
+    }
+
+    /* Timer Page */
+    .timer-page {
+      padding: 24px 20px;
+    }
+
+    .task-input-wrapper {
+      margin-bottom: 32px;
+    }
+
+    .task-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 15px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .task-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .task-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* Timer Display */
+    .timer-display {
+      text-align: center;
+      padding: 20px 0 32px;
+    }
+
+    .timer-time {
+      font-size: 56px;
+      font-weight: 200;
+      letter-spacing: -2px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary);
+    }
+
+    .timer-label {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    /* Timer Controls */
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--bg-secondary);
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      border-color: var(--accent-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1c7ed6;
+    }
+
+    .btn-success {
+      background: var(--success-color);
+      border-color: var(--success-color);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #37b24d;
+    }
+
+    .btn-danger {
+      background: var(--danger-color);
+      border-color: var(--danger-color);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #e03131;
+    }
+
+    /* Schedule Section */
+    .schedule-section {
+      border-top: 1px solid var(--border-color);
+      padding-top: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-date {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    /* Task Item */
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      gap: 12px;
+    }
+
+    .task-time {
+      font-size: 13px;
+      color: var(--text-secondary);
+      min-width: 90px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .task-content {
+      flex: 1;
+    }
+
+    .task-name {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .task-duration {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-tertiary);
+    }
+
+    /* Daily Summary */
+    .daily-summary {
+      margin-top: 16px;
+      padding: 12px 14px;
+      background: var(--accent-light);
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .summary-label {
+      font-size: 13px;
+      color: var(--accent-color);
+    }
+
+    .summary-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+
+    /* Calendar Page */
+    .calendar-page {
+      padding: 20px;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .calendar-title {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-primary);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-secondary);
+    }
+
+    /* Calendar Grid */
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .weekday {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      padding: 8px 0;
+      font-weight: 500;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+      position: relative;
+      transition: background 0.2s;
+      border: 2px solid transparent;
+    }
+
+    .calendar-day:hover {
+      background: var(--bg-secondary);
+    }
+
+    .calendar-day.other-month {
+      color: var(--text-tertiary);
+    }
+
+    .calendar-day.today {
+      background: var(--accent-color);
+      color: white;
+      font-weight: 600;
+    }
+
+    .calendar-day.selected {
+      background: var(--accent-light);
+      color: var(--accent-color);
+      font-weight: 600;
+    }
+
+    .calendar-day.has-tasks::after {
+      content: '';
+      position: absolute;
+      bottom: 6px;
+      width: 4px;
+      height: 4px;
+      background: var(--accent-color);
+      border-radius: 50%;
+    }
+
+    .calendar-day.today.has-tasks::after {
+      background: white;
+    }
+
+    /* NEW: Checkbox style for multi-select */
+    .calendar-day.checked {
+      border-color: var(--success-color);
+      background: var(--success-light);
+    }
+
+    .calendar-day.checked::before {
+      content: '✓';
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 10px;
+      color: var(--success-color);
+      font-weight: bold;
+    }
+
+    /* Selection Mode Bar */
+    .selection-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--success-light);
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+
+    .selection-info {
+      font-size: 13px;
+      color: var(--success-color);
+      font-weight: 500;
+    }
+
+    .selection-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .selection-btn {
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .selection-btn-cancel {
+      background: transparent;
+      color: var(--text-secondary);
+    }
+
+    .selection-btn-generate {
+      background: var(--success-color);
+      color: white;
+    }
+
+    /* Calendar Toolbar */
+    .calendar-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .checkbox-label input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--success-color);
+    }
+
+    /* Selected Day Schedule */
+    .selected-day-schedule {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .selected-day-header {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Report Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 80vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-secondary);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Report Content */
+    .report-header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .report-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .report-period {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .report-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .report-stat {
+      text-align: center;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 10px;
+    }
+
+    .report-stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent-color);
+    }
+
+    .report-stat-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .report-section {
+      margin-bottom: 16px;
+    }
+
+    .report-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .report-day-group {
+      margin-bottom: 12px;
+    }
+
+    .report-day-header {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      padding-left: 4px;
+    }
+
+    .report-task-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      gap: 10px;
+    }
+
+    .report-task-time {
+      font-size: 12px;
+      color: var(--text-secondary);
+      min-width: 80px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .report-task-name {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .report-task-duration {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Page Label */
+    .page-label {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border-color);
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <p class="page-title">TaskTimer UI Design - 完整版（含报告生成）</p>
+
+    <!-- Page 1: Timer Page -->
+    <div class="page-label">Page 1 / 3 - 计时页面</div>
+    <div class="mockup-card">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon">T</div>
+          TaskTimer
+        </div>
+        <button class="theme-toggle">&#9790;</button>
+      </div>
+
+      <div class="tab-nav">
+        <button class="tab-btn active">&#9201; 计时</button>
+        <button class="tab-btn">&#128197; 日历</button>
+      </div>
+
+      <div class="timer-page">
+        <div class="task-input-wrapper">
+          <input type="text" class="task-input" placeholder="输入任务名称..." value="写项目报告">
+        </div>
+
+        <div class="timer-display">
+          <div class="timer-time">00:45:32</div>
+          <div class="timer-label">已计时</div>
+        </div>
+
+        <div class="timer-controls">
+          <button class="btn">&#9654; 开始</button>
+          <button class="btn">&#10074;&#10074; 暂停</button>
+          <button class="btn btn-danger">&#9209; 结束</button>
+        </div>
+
+        <div class="schedule-section">
+          <div class="section-header">
+            <div class="section-title">&#128197; 今日日程</div>
+            <div class="section-date">2026-05-31</div>
+          </div>
+
+          <div class="task-list">
+            <div class="task-item">
+              <div class="task-time">14:00 - 14:45</div>
+              <div class="task-content">
+                <div class="task-name">写报告</div>
+                <div class="task-duration">45 分钟</div>
+              </div>
+              <div class="task-actions">
+                <button class="action-btn">&#9998;</button>
+                <button class="action-btn">&#128465;</button>
+              </div>
+            </div>
+
+            <div class="task-item">
+              <div class="task-time">14:45 - 15:30</div>
+              <div class="task-content">
+                <div class="task-name">开会</div>
+                <div class="task-duration">45 分钟</div>
+              </div>
+              <div class="task-actions">
+                <button class="action-btn">&#9998;</button>
+                <button class="action-btn">&#128465;</button>
+              </div>
+            </div>
+
+            <div class="task-item">
+              <div class="task-time">15:30 - 16:00</div>
+              <div class="task-content">
+                <div class="task-name">回复邮件</div>
+                <div class="task-duration">30 分钟</div>
+              </div>
+              <div class="task-actions">
+                <button class="action-btn">&#9998;</button>
+                <button class="action-btn">&#128465;</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="daily-summary">
+            <span class="summary-label">今日总计</span>
+            <span class="summary-value">2 小时 00 分钟</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page 2: Calendar Page (Normal Mode) -->
+    <div class="page-label">Page 2 / 3 - 日历页面（普通模式）</div>
+    <div class="mockup-card">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon">T</div>
+          TaskTimer
+        </div>
+        <button class="theme-toggle">&#9790;</button>
+      </div>
+
+      <div class="tab-nav">
+        <button class="tab-btn">&#9201; 计时</button>
+        <button class="tab-btn active">&#128197; 日历</button>
+      </div>
+
+      <div class="calendar-page">
+        <div class="calendar-header">
+          <div class="calendar-title">2026年5月</div>
+          <div class="calendar-nav">
+            <button class="nav-btn">&#8249;</button>
+            <button class="nav-btn">&#8250;</button>
+          </div>
+        </div>
+
+        <!-- Toolbar with checkbox -->
+        <div class="calendar-toolbar">
+          <div class="toolbar-left">
+            <label class="checkbox-label">
+              <input type="checkbox" id="selectMode">
+              多选模式
+            </label>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays">
+          <div class="weekday">日</div>
+          <div class="weekday">一</div>
+          <div class="weekday">二</div>
+          <div class="weekday">三</div>
+          <div class="weekday">四</div>
+          <div class="weekday">五</div>
+          <div class="weekday">六</div>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="calendar-day other-month">27</div>
+          <div class="calendar-day other-month">28</div>
+          <div class="calendar-day other-month">29</div>
+          <div class="calendar-day other-month">30</div>
+          <div class="calendar-day has-tasks">1</div>
+          <div class="calendar-day">2</div>
+          <div class="calendar-day has-tasks">3</div>
+          <div class="calendar-day has-tasks">4</div>
+          <div class="calendar-day">5</div>
+          <div class="calendar-day has-tasks">6</div>
+          <div class="calendar-day">7</div>
+          <div class="calendar-day has-tasks">8</div>
+          <div class="calendar-day">9</div>
+          <div class="calendar-day has-tasks">10</div>
+          <div class="calendar-day">11</div>
+          <div class="calendar-day has-tasks">12</div>
+          <div class="calendar-day">13</div>
+          <div class="calendar-day has-tasks">14</div>
+          <div class="calendar-day today has-tasks">15</div>
+          <div class="calendar-day">16</div>
+          <div class="calendar-day">17</div>
+          <div class="calendar-day">18</div>
+          <div class="calendar-day">19</div>
+          <div class="calendar-day has-tasks">20</div>
+          <div class="calendar-day">21</div>
+          <div class="calendar-day has-tasks">22</div>
+          <div class="calendar-day">23</div>
+          <div class="calendar-day">24</div>
+          <div class="calendar-day">25</div>
+          <div class="calendar-day">26</div>
+          <div class="calendar-day">27</div>
+          <div class="calendar-day has-tasks">28</div>
+          <div class="calendar-day">29</div>
+          <div class="calendar-day">30</div>
+          <div class="calendar-day">31</div>
+        </div>
+
+        <div class="selected-day-schedule">
+          <div class="selected-day-header">
+            &#128197; 2026-05-15 的日程
+          </div>
+
+          <div class="task-list">
+            <div class="task-item">
+              <div class="task-time">14:00 - 14:45</div>
+              <div class="task-content">
+                <div class="task-name">写报告</div>
+                <div class="task-duration">45 分钟</div>
+              </div>
+              <div class="task-actions">
+                <button class="action-btn">&#9998;</button>
+                <button class="action-btn">&#128465;</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="daily-summary">
+            <span class="summary-label">当日总计</span>
+            <span class="summary-value">2 小时 00 分钟 · 3 个任务</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page 3: Calendar Page (Multi-Select Mode) -->
+    <div class="page-label">Page 3 / 3 - 日历页面（多选模式 + 报告生成）</div>
+    <div class="mockup-card">
+      <div class="header">
+        <div class="logo">
+          <div class="logo-icon">T</div>
+          TaskTimer
+        </div>
+        <button class="theme-toggle">&#9790;</button>
+      </div>
+
+      <div class="tab-nav">
+        <button class="tab-btn">&#9201; 计时</button>
+        <button class="tab-btn active">&#128197; 日历</button>
+      </div>
+
+      <div class="calendar-page">
+        <div class="calendar-header">
+          <div class="calendar-title">2026年5月</div>
+          <div class="calendar-nav">
+            <button class="nav-btn">&#8249;</button>
+            <button class="nav-btn">&#8250;</button>
+          </div>
+        </div>
+
+        <!-- Toolbar with checkbox (checked) -->
+        <div class="calendar-toolbar">
+          <div class="toolbar-left">
+            <label class="checkbox-label">
+              <input type="checkbox" id="selectMode" checked>
+              多选模式
+            </label>
+          </div>
+        </div>
+
+        <!-- Selection Bar (appears when dates are selected) -->
+        <div class="selection-bar">
+          <div class="selection-info">已选择 3 天 (5/12 - 5/14)</div>
+          <div class="selection-actions">
+            <button class="selection-btn selection-btn-cancel">取消</button>
+            <button class="selection-btn selection-btn-generate">生成报告</button>
+          </div>
+        </div>
+
+        <div class="calendar-weekdays">
+          <div class="weekday">日</div>
+          <div class="weekday">一</div>
+          <div class="weekday">二</div>
+          <div class="weekday">三</div>
+          <div class="weekday">四</div>
+          <div class="weekday">五</div>
+          <div class="weekday">六</div>
+        </div>
+
+        <div class="calendar-grid">
+          <div class="calendar-day other-month">27</div>
+          <div class="calendar-day other-month">28</div>
+          <div class="calendar-day other-month">29</div>
+          <div class="calendar-day other-month">30</div>
+          <div class="calendar-day has-tasks">1</div>
+          <div class="calendar-day">2</div>
+          <div class="calendar-day has-tasks">3</div>
+          <div class="calendar-day has-tasks">4</div>
+          <div class="calendar-day">5</div>
+          <div class="calendar-day has-tasks">6</div>
+          <div class="calendar-day">7</div>
+          <div class="calendar-day has-tasks">8</div>
+          <div class="calendar-day">9</div>
+          <div class="calendar-day has-tasks">10</div>
+          <div class="calendar-day">11</div>
+          <div class="calendar-day checked has-tasks">12</div>
+          <div class="calendar-day checked has-tasks">13</div>
+          <div class="calendar-day checked has-tasks">14</div>
+          <div class="calendar-day today has-tasks">15</div>
+          <div class="calendar-day">16</div>
+          <div class="calendar-day">17</div>
+          <div class="calendar-day">18</div>
+          <div class="calendar-day">19</div>
+          <div class="calendar-day has-tasks">20</div>
+          <div class="calendar-day">21</div>
+          <div class="calendar-day has-tasks">22</div>
+          <div class="calendar-day">23</div>
+          <div class="calendar-day">24</div>
+          <div class="calendar-day">25</div>
+          <div class="calendar-day">26</div>
+          <div class="calendar-day">27</div>
+          <div class="calendar-day has-tasks">28</div>
+          <div class="calendar-day">29</div>
+          <div class="calendar-day">30</div>
+          <div class="calendar-day">31</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page 4: Report Modal -->
+    <div class="page-label">弹窗 - 工作报告</div>
+    <div class="mockup-card" style="max-height: 600px; overflow: hidden;">
+      <div class="modal-header">
+        <div class="modal-title">&#128202; 工作报告</div>
+        <button class="modal-close">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="report-header">
+          <div class="report-title">工作时长报告</div>
+          <div class="report-period">2026年5月12日 - 5月14日</div>
+        </div>
+
+        <div class="report-summary">
+          <div class="report-stat">
+            <div class="report-stat-value">3</div>
+            <div class="report-stat-label">工作天数</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat-value">12</div>
+            <div class="report-stat-label">任务数量</div>
+          </div>
+          <div class="report-stat">
+            <div class="report-stat-value">8.5h</div>
+            <div class="report-stat-label">总时长</div>
+          </div>
+        </div>
+
+        <div class="report-section">
+          <div class="report-section-title">&#128197; 详细记录</div>
+
+          <div class="report-day-group">
+            <div class="report-day-header">5月12日 (周二)</div>
+            <div class="report-task-item">
+              <div class="report-task-time">09:00-10:30</div>
+              <div class="report-task-name">项目规划</div>
+              <div class="report-task-duration">1.5h</div>
+            </div>
+            <div class="report-task-item">
+              <div class="report-task-time">14:00-15:30</div>
+              <div class="report-task-name">代码开发</div>
+              <div class="report-task-duration">1.5h</div>
+            </div>
+          </div>
+
+          <div class="report-day-group">
+            <div class="report-day-header">5月13日 (周三)</div>
+            <div class="report-task-item">
+              <div class="report-task-time">10:00-11:00</div>
+              <div class="report-task-name">团队会议</div>
+              <div class="report-task-duration">1h</div>
+            </div>
+            <div class="report-task-item">
+              <div class="report-task-time">13:00-15:00</div>
+              <div class="report-task-name">文档编写</div>
+              <div class="report-task-duration">2h</div>
+            </div>
+          </div>
+
+          <div class="report-day-group">
+            <div class="report-day-header">5月14日 (周四)</div>
+            <div class="report-task-item">
+              <div class="report-task-time">09:30-11:30</div>
+              <div class="report-task-name">需求分析</div>
+              <div class="report-task-duration">2h</div>
+            </div>
+            <div class="report-task-item">
+              <div class="report-task-time">14:00-16:00</div>
+              <div class="report-task-name">测试调试</div>
+              <div class="report-task-duration">2h</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn">关闭</button>
+        <button class="btn btn-success">&#128190; 导出报告</button>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>健康提醒</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+    }
+
+    .reminder {
+      width: 380px;
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .reminder-header {
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .reminder-header.water { background: linear-gradient(135deg, #e7f5ff 0%, #d0ebff 100%); }
+    .reminder-header.walk { background: linear-gradient(135deg, #ebfbee 0%, #d3f9d8 100%); }
+    .reminder-header.eye { background: linear-gradient(135deg, #fff3bf 0%, #ffec99 100%); }
+    .reminder-header.stretch { background: linear-gradient(135deg, #f3d9fa 0%, #e5dbf9 100%); }
+
+    .reminder-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+    }
+
+    .reminder-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #212529;
+    }
+
+    .reminder-body {
+      padding: 20px;
+    }
+
+    .reminder-message {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .reminder-message-text {
+      font-size: 14px;
+      color: #495057;
+      line-height: 1.6;
+    }
+
+    .reminder-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .reminder-btn {
+      flex: 1;
+      padding: 14px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .reminder-btn:hover { opacity: 0.9; transform: scale(1.02); }
+
+    .reminder-btn-complete {
+      background: linear-gradient(135deg, #40c057 0%, #37b24d 100%);
+      color: white;
+    }
+
+    .reminder-btn-snooze {
+      background: #e9ecef;
+      color: #495057;
+    }
+  </style>
+</head>
+<body>
+  <div class="reminder" id="reminder">
+    <div class="reminder-header" id="reminder-header">
+      <div class="reminder-icon" id="reminder-icon">💧</div>
+      <div class="reminder-title" id="reminder-title">该喝水了！</div>
+    </div>
+
+    <div class="reminder-body">
+      <div class="reminder-message">
+        <div class="reminder-message-text" id="reminder-message">你的身体正在沙漠化，再不喝水就要变成仙人掌了！</div>
+      </div>
+
+      <div class="reminder-buttons">
+        <button class="reminder-btn reminder-btn-snooze" id="btn-snooze">稍后提醒</button>
+        <button class="reminder-btn reminder-btn-complete" id="btn-complete">✓ 已完成</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 监听显示提醒事件
+    window.electronAPI.onShowReminder((data) => {
+      // 更新 UI
+      document.getElementById('reminder-icon').textContent = data.icon
+      document.getElementById('reminder-title').textContent = data.title
+      document.getElementById('reminder-message').textContent = data.message
+
+      // 更新背景颜色
+      const header = document.getElementById('reminder-header')
+      header.className = 'reminder-header ' + data.type
+    })
+
+    // 已完成
+    document.getElementById('btn-complete').addEventListener('click', () => {
+      window.electronAPI.close()
+    })
+
+    // 稍后提醒
+    document.getElementById('btn-snooze').addEventListener('click', () => {
+      window.electronAPI.snooze()
+    })
+  </script>
+</body>
+</html>
