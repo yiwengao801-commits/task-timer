@@ -17,7 +17,7 @@ jobs:
       name: ${{ steps.vars.outputs.name }}
       prerelease: ${{ steps.vars.outputs.prerelease }}
     steps:
-      - name: 生成发布信息
+      - name: Generate release info
         id: vars
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
@@ -50,24 +50,24 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: 拉取代码
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 安装 Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: npm ci
 
-      - name: 构建 Electron 应用
+      - name: Build Electron app
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 上传构建产物
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
@@ -85,15 +85,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 下载所有构建产物
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: dist-artifacts
 
-      - name: 查看产物文件
+      - name: List files
         run: find dist-artifacts -type f
 
-      - name: 创建 GitHub Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release_info.outputs.tag }}
