@@ -1,16 +1,41 @@
 name: Build and Release Electron App
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
+  release_info:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+      name: ${{ steps.vars.outputs.name }}
+      prerelease: ${{ steps.vars.outputs.prerelease }}
+    steps:
+      - name: 生成发布信息
+        id: vars
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            NAME="$TAG"
+            PRERELEASE=false
+          else
+            TAG="manual-${GITHUB_RUN_NUMBER}"
+            NAME="manual-${GITHUB_RUN_NUMBER}"
+            PRERELEASE=true
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: release_info
     strategy:
       fail-fast: false
       matrix:
@@ -25,53 +50,62 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Checkout code
+      - name: 拉取代码
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: 安装 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: npm ci
 
-      - name: Build Electron app
+      - name: 构建 Electron 应用
         run: npm run electron:build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload build artifacts
+      - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            release/*.exe
-            release/*.dmg
-            release/*.AppImage
-            release/*.zip
-            release/*.blockmap
+            release/**/*.exe
+            release/**/*.dmg
+            release/**/*.AppImage
+            release/**/*.zip
+            release/**/*.blockmap
+            release/**/*.yml
           if-no-files-found: ignore
 
   release:
-    needs: build
+    needs: [release_info, build]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-      - name: Download all artifacts
+      - name: 下载所有构建产物
         uses: actions/download-artifact@v4
         with:
           path: dist-artifacts
 
-      - name: Display files
+      - name: 查看产物文件
         run: find dist-artifacts -type f
 
-      - name: Create GitHub Release
+      - name: 创建 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-artifacts/**/*
+          tag_name: ${{ needs.release_info.outputs.tag }}
+          name: ${{ needs.release_info.outputs.name }}
+          prerelease: ${{ needs.release_info.outputs.prerelease == 'true' }}
           generate_release_notes: true
+          files: |
+            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.dmg
+            dist-artifacts/**/*.AppImage
+            dist-artifacts/**/*.zip
+            dist-artifacts/**/*.blockmap
+            dist-artifacts/**/*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
