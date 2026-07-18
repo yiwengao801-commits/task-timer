@@ -3,7 +3,7 @@
  * 显示月历并支持日期选择
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { formatDate } from '../utils/timeFormat'
 import { hasTasks } from '../utils/storage'
 
@@ -16,14 +16,42 @@ export default function Calendar({
 }) {
   // 当前显示的月份
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [hasTaskDates, setHasTaskDates] = useState(new Set())
 
-  // 获取月份信息
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth()
 
   // 获取当月第一天
   const firstDay = new Date(year, month, 1)
   const firstDayOfWeek = firstDay.getDay()
+
+  // 预加载当前月份有任务的日期
+  useEffect(() => {
+    let cancelled = false
+    const dates = []
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const daysInPrevMonth = new Date(year, month, 0).getDate()
+
+    // 上月补齐
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      dates.push(formatDate(new Date(year, month - 1, daysInPrevMonth - i)))
+    }
+    // 当月
+    for (let i = 1; i <= daysInMonth; i++) {
+      dates.push(formatDate(new Date(year, month, i)))
+    }
+
+    Promise.all(dates.map(d => hasTasks(d).then(r => ({ d, r }))))
+      .then(results => {
+        if (cancelled) return
+        setHasTaskDates(new Set(results.filter(x => x.r).map(x => x.d)))
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [year, month, firstDayOfWeek])
 
   // 获取当月天数
   const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -108,7 +136,7 @@ export default function Calendar({
         {calendarDays.map((item, index) => {
           const isToday = item.date === today
           const isSelected = item.date === selectedDate
-          const hasTask = hasTasks(item.date)
+          const hasTask = hasTaskDates.has(item.date)
           const checked = isChecked(item.date)
 
           let className = 'calendar-day'

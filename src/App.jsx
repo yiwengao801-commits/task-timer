@@ -10,6 +10,7 @@ import Calendar from './components/Calendar'
 import EditModal from './components/EditModal'
 import ReportModal from './components/ReportModal'
 import ShortcutsModal from './components/ShortcutsModal'
+import SettingsModal from './components/SettingsModal'
 import { useTimer } from './hooks/useTimer'
 import {
   getTasksByDate,
@@ -48,19 +49,22 @@ export default function App() {
   // 快捷入口弹窗
   const [showShortcuts, setShowShortcuts] = useState(false)
 
+  // 设置弹窗
+  const [showSettings, setShowSettings] = useState(false)
+
   // 计时器
   const timer = useTimer()
 
   // 加载今日任务
-  const loadTodayTasks = useCallback(() => {
+  const loadTodayTasks = useCallback(async () => {
     const today = formatDate(new Date())
-    const tasks = getTasksByDate(today)
+    const tasks = await getTasksByDate(today)
     setTodayTasks(tasks)
   }, [])
 
   // 加载选中日期的任务
-  const loadSelectedDateTasks = useCallback(() => {
-    const tasks = getTasksByDate(selectedDate)
+  const loadSelectedDateTasks = useCallback(async () => {
+    const tasks = await getTasksByDate(selectedDate)
     setSelectedDateTasks(tasks)
   }, [selectedDate])
 
@@ -74,11 +78,11 @@ export default function App() {
   useEffect(() => {
     // 检查是否在 Electron 环境中
     if (window.electronAPI && window.electronAPI.onTaskSaved) {
-      const unsubscribe = window.electronAPI.onTaskSaved((task) => {
+      const unsubscribe = window.electronAPI.onTaskSaved(async (task) => {
         // 获取任务日期
         const taskDate = formatDate(new Date(task.startTime))
         // 保存任务
-        saveTask(taskDate, task)
+        await saveTask(taskDate, task)
         // 刷新任务列表
         loadTodayTasks()
         loadSelectedDateTasks()
@@ -103,7 +107,7 @@ export default function App() {
   }, [selectedDate, loadSelectedDateTasks])
 
   // 任务完成回调
-  const handleTaskComplete = (taskData) => {
+  const handleTaskComplete = async (taskData) => {
     // 以任务开始时间所属日期为准（避免跨天导致记录落到错误日期）
     const today = formatDate(new Date(taskData.startTime))
     const task = {
@@ -114,7 +118,7 @@ export default function App() {
       duration: taskData.duration
     }
 
-    saveTask(today, task)
+    await saveTask(today, task)
     loadTodayTasks()
   }
 
@@ -124,19 +128,19 @@ export default function App() {
   }
 
   // 保存编辑
-  const handleSaveEdit = (updatedTask) => {
+  const handleSaveEdit = async (updatedTask) => {
     const date = formatDate(new Date(updatedTask.startTime))
-    updateTask(date, updatedTask.id, updatedTask)
+    await updateTask(date, updatedTask.id, updatedTask)
     loadTodayTasks()
     loadSelectedDateTasks()
   }
 
   // 删除任务
-  const handleDeleteTask = (taskId) => {
+  const handleDeleteTask = async (taskId) => {
     if (!confirm('确定要删除这个任务吗？')) return
 
     const date = formatDate(new Date())
-    deleteTask(date, taskId)
+    await deleteTask(date, taskId)
     loadTodayTasks()
     loadSelectedDateTasks()
   }
@@ -158,13 +162,13 @@ export default function App() {
   }
 
   // 生成报告
-  const handleGenerateReport = () => {
+  const handleGenerateReport = async () => {
     if (selectedDates.length === 0) {
       alert('请先选择日期')
       return
     }
 
-    const tasks = getTasksByDates(selectedDates)
+    const tasks = await getTasksByDates(selectedDates)
     if (Object.keys(tasks).length === 0) {
       alert('所选日期没有任务记录')
       return
@@ -210,6 +214,12 @@ export default function App() {
             <button className="widget-toggle-btn" onClick={handleShowWidget} title="显示桌面组件">
               <span className="widget-toggle-icon">📌</span>
               <span className="widget-toggle-text">桌面组件</span>
+            </button>
+          )}
+          {isElectron && (
+            <button className="settings-toggle-btn" onClick={() => setShowSettings(true)} title="设置">
+              <span className="settings-toggle-icon">⚙️</span>
+              <span className="settings-toggle-text">设置</span>
             </button>
           )}
         </div>
@@ -336,6 +346,9 @@ export default function App() {
 
       {/* 快捷入口弹窗 */}
       {showShortcuts && <ShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />}
+
+      {/* 设置弹窗 */}
+      {showSettings && <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />}
     </div>
   )
 }

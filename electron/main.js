@@ -3,7 +3,7 @@
  * 管理主窗口和悬浮窗
  */
 
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, screen, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, screen, shell, dialog } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
@@ -28,6 +28,182 @@ let isShortcutsPinned = true
 
 // 健康提醒定时器
 let healthReminderTimer = null
+
+// ==================== 自定义数据目录 ====================
+const DATA_CONFIG_FILE = 'data-config.json'
+
+function dataConfigPath() {
+  return path.join(app.getPath('userData'), DATA_CONFIG_FILE)
+}
+
+function readDataConfig() {
+  try {
+    const p = dataConfigPath()
+    if (!fs.existsSync(p)) return null
+    const raw = fs.readFileSync(p, 'utf-8')
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed.customDataDir === 'string' && parsed.customDataDir.trim()) {
+      return parsed.customDataDir.trim()
+    }
+    return null
+  } catch (e) {
+    console.error('读取数据目录配置失败:', e)
+    return null
+  }
+}
+
+function writeDataConfig(customDataDir) {
+  try {
+    const p = dataConfigPath()
+    fs.writeFileSync(p, JSON.stringify({ customDataDir }, null, 2), 'utf-8')
+    return true
+  } catch (e) {
+    console.error('保存数据目录配置失败:', e)
+    return false
+  }
+}
+
+function resolveDataDir() {
+  const custom = readDataConfig()
+  if (custom && fs.existsSync(custom)) {
+    return custom
+  }
+  return app.getPath('userData')
+}
+
+function tasksFile() {
+  return path.join(resolveDataDir(), 'task-timer-data.json')
+}
+
+function shortcutsFile() {
+  return path.join(resolveDataDir(), 'shortcuts.json')
+}
+
+const CURRENT_TASK_DATA_VERSION = 1
+
+// 读取任务数据，自动处理版本化和迁移
+function readTasks() {
+  try {
+    const p = tasksFile()
+    if (!fs.existsSync(p)) return { version: CURRENT_TASK_DATA_VERSION, data: {} }
+    const raw = fs.readFileSync(p, 'utf-8')
+    const parsed = JSON.parse(raw)
+    return migrateTaskData(parsed)
+  } catch (e) {
+    console.error('读取任务数据失败:', e)
+    return { version: CURRENT_TASK_DATA_VERSION, data: {} }
+  }
+}
+
+// 保存任务数据，统一写入带版本号的格式
+function writeTasks(data) {
+  try {
+    const p = tasksFile()
+    const payload = typeof data === 'string' ? JSON.parse(data) : data
+    const normalized = normalizeTaskData(payload)
+    fs.writeFileSync(p, JSON.stringify(normalized, null, 2), 'utf-8')
+    return true
+  } catch (e) {
+    console.error('保存任务数据失败:', e)
+    return false
+  }
+}
+
+// 将任意输入统一成带 version 的结构
+function normalizeTaskData(input) {
+  if (!input || typeof input !== 'object') {
+    return { version: CURRENT_TASK_DATA_VERSION, data: {} }
+  }
+  if (input.version && input.data !== undefined) {
+    return { version: CURRENT_TASK_DATA_VERSION, data: input.data }
+  }
+  return { version: CURRENT_TASK_DATA_VERSION, data: input }
+}
+
+// 数据迁移：旧格式 -> 新格式，后续版本迭代可在此扩展
+function migrateTaskData(data) {
+  if (!data || typeof data !== 'object') {
+    return { version: CURRENT_TASK_DATA_VERSION, data: {} }
+  }
+
+  // 已经是新版本格式
+  if (data.version && data.data !== undefined) {
+    return { version: CURRENT_TASK_DATA_VERSION, data: data.data }
+  }
+
+  // 旧格式：没有 version 字段，整体当作 data
+  const legacy = { ...data }
+  const migrated = { version: CURRENT_TASK_DATA_VERSION, data: legacy }
+  // 自动落盘，避免下次再迁移
+  writeTasks(migrated)
+  return migrated
+}
+
+// 合并多个任务数据源
+function mergeTaskData(sources) {
+  const merged = {}
+  let total = 0
+  for (const src of sources) {
+    if (!src || typeof src !== 'object') continue
+    for (const date in src) {
+      if (!merged[date]) merged[date] = []
+      const existing = new Map(merged[date].map(t => [t.id, t]))
+      for (const task of src[date]) {
+        if (!existing.has(task.id)) {
+          merged[date].push(task)
+          total++
+        }
+      }
+    }
+  }
+  return { data: merged, total }
+}
+
+// 查找可能的旧数据目录
+function findLegacyDataDirs() {
+  const dirs = []
+  // 默认 userData
+  dirs.push(app.getPath('userData'))
+  // 安装目录下的 ProgramData（常见 UAC 虚拟化位置）
+  const installDir = path.dirname(app.getPath('exe'))
+  const programData = path.join(installDir, 'ProgramData')
+  if (fs.existsSync(programData)) {
+    dirs.push(programData)
+  }
+  return dirs
+}
+
+function migrateDir(oldDir, newDir) {
+  try {
+    if (!fs.existsSync(oldDir)) return { ok: true, migrated: false }
+    if (!fs.existsSync(newDir)) fs.mkdirSync(newDir, { recursive: true })
+    let count = 0
+    const entries = fs.readdirSync(oldDir)
+    for (const name of entries) {
+      const src = path.join(oldDir, name)
+      const dst = path.join(newDir, name)
+      if (fs.existsSync(dst)) continue
+      try {
+        const stat = fs.statSync(src)
+        if (stat.isDirectory()) {
+          if (!fs.existsSync(dst)) fs.mkdirSync(dst, { recursive: true })
+          const sub = migrateDir(src, dst)
+          if (sub.ok) count += sub.count || 0
+        } else if (stat.isFile()) {
+          fs.copyFileSync(src, dst)
+          count++
+        }
+        // 跳过 socket、链接、设备文件等不可复制项
+      } catch (e) {
+        console.warn('迁移跳过:', src, e.message)
+      }
+    }
+    return { ok: true, migrated: true, count }
+  } catch (e) {
+    console.error('迁移数据失败:', e)
+    return { ok: false, error: e.message }
+  }
+}
 
 // 健康提醒类型（每个类型多条文案）
 const healthReminders = {
@@ -139,6 +315,7 @@ function createMainWindow() {
   } else {
     // 生产环境加载构建后的文件
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.webContents.openDevTools()
   }
 
   mainWindow.on('close', (event) => {
@@ -182,6 +359,13 @@ function createWidgetWindow() {
       widgetWindow.hide()
     }
   })
+
+  // 置顶增强：失焦时若处于 pin 状态，自动重新置顶，减少被其他窗口覆盖
+  widgetWindow.on('blur', () => {
+    if (isTimerPinned && widgetWindow && !widgetWindow.isDestroyed()) {
+      widgetWindow.setAlwaysOnTop(true)
+    }
+  })
 }
 
 /**
@@ -223,13 +407,18 @@ function createShortcutsWindow() {
       shortcutsWindow.hide()
     }
   })
+
+  // 置顶增强：失焦时若处于 pin 状态，自动重新置顶，减少被其他窗口覆盖
+  shortcutsWindow.on('blur', () => {
+    if (isShortcutsPinned && shortcutsWindow && !shortcutsWindow.isDestroyed()) {
+      shortcutsWindow.setAlwaysOnTop(true)
+    }
+  })
 }
 
 /**
  * 快捷入口持久化（主进程统一存储，避免不同 origin 的 localStorage 不共享）
  */
-const shortcutsFile = () => path.join(app.getPath('userData'), 'shortcuts.json')
-
 function normalizeColor(color) {
   const c = (color || '').toString().trim()
   if (!c) return '#228be6'
@@ -628,4 +817,107 @@ ipcMain.on('save-task', (event, task) => {
   if (mainWindow) {
     mainWindow.webContents.send('task-saved', task)
   }
+})
+
+// ==================== 自定义数据目录 IPC ====================
+
+ipcMain.handle('get-data-dir', async () => {
+  return resolveDataDir()
+})
+
+ipcMain.handle('choose-data-dir', async () => {
+  if (!mainWindow) return null
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory', 'createDirectory'],
+    title: '选择数据存储目录'
+  })
+  if (result.canceled || !result.filePaths || !result.filePaths[0]) return null
+  return result.filePaths[0]
+})
+
+ipcMain.handle('set-data-dir', async (event, newDir) => {
+  if (typeof newDir !== 'string' || !newDir.trim()) return { ok: false, error: '路径为空' }
+  const target = newDir.trim()
+  try {
+    if (!fs.existsSync(target)) fs.mkdirSync(target, { recursive: true })
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+  const oldDir = resolveDataDir()
+  if (path.resolve(oldDir) === path.resolve(target)) return { ok: true, changed: false }
+  const migration = migrateDir(oldDir, target)
+  if (!migration.ok) return { ok: false, error: migration.error || '迁移失败' }
+  const saved = writeDataConfig(target)
+  if (!saved) return { ok: false, error: '保存配置失败' }
+  return { ok: true, changed: true, migrated: !!migration.migrated, count: migration.count || 0 }
+})
+
+// ==================== 任务数据 IPC ====================
+
+ipcMain.handle('get-all-tasks', async () => {
+  const result = readTasks()
+  return result.data || {}
+})
+
+ipcMain.handle('save-task', async (event, date, task) => {
+  const result = readTasks()
+  const data = result.data || {}
+  if (!data[date]) data[date] = []
+  data[date].push(task)
+  const ok = writeTasks(data)
+  return ok
+})
+
+ipcMain.handle('update-task', async (event, date, taskId, updatedTask) => {
+  const result = readTasks()
+  const data = result.data || {}
+  if (data[date]) {
+    const index = data[date].findIndex(t => t.id === taskId)
+    if (index !== -1) {
+      data[date][index] = { ...data[date][index], ...updatedTask }
+      return writeTasks(data)
+    }
+  }
+  return false
+})
+
+ipcMain.handle('delete-task', async (event, date, taskId) => {
+  const result = readTasks()
+  const data = result.data || {}
+  if (data[date]) {
+    data[date] = data[date].filter(t => t.id !== taskId)
+    if (data[date].length === 0) {
+      delete data[date]
+    }
+    return writeTasks(data)
+  }
+  return false
+})
+
+ipcMain.handle('get-legacy-data-dirs', async () => {
+  return findLegacyDataDirs()
+})
+
+ipcMain.handle('merge-legacy-data', async () => {
+  const dirs = findLegacyDataDirs()
+  const sources = []
+  for (const dir of dirs) {
+    const p = path.join(dir, 'task-timer-data.json')
+    if (!fs.existsSync(p)) continue
+    try {
+      const raw = fs.readFileSync(p, 'utf-8')
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object') sources.push(parsed)
+    } catch (e) {
+      console.error('读取旧数据失败:', e)
+    }
+  }
+  if (sources.length <= 1) return { ok: false, error: '未发现可合并的多份数据' }
+  const current = readTasks()
+  sources.push(current)
+  const result = mergeTaskData(sources)
+  if (result.total === 0) return { ok: false, error: '没有可合并的新记录' }
+  const ok = writeTasks(result.data)
+  if (!ok) return { ok: false, error: '写入合并后数据失败' }
+  return { ok: true, total: result.total }
 })
